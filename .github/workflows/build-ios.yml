@@ -1,4 +1,4 @@
-name: Build iOS
+name: Build iOS (Godot 4.5)
 
 on:
   push:
@@ -13,54 +13,87 @@ jobs:
     runs-on: macos-latest
 
     steps:
+    # -------------------------
+    # Checkout repo
+    # -------------------------
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: Download Godot
+    # -------------------------
+    # Install Godot 4.5
+    # -------------------------
+    - name: Download Godot 4.5
       run: |
-        wget https://github.com/godotengine/godot/releases/download/3.5.3-stable/Godot_v3.5.3-stable_osx.universal.zip
-        unzip Godot_v3.5.3-stable_osx.universal.zip -d godot
-        sudo mv godot/Godot.app /Applications/Godot.app
-        sudo ln -s /Applications/Godot.app/Contents/MacOS/Godot /usr/local/bin/godot
+        wget https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_macos.universal.zip
+        unzip Godot_v4.5-stable_macos.universal.zip
+        sudo mv Godot.app /Applications/Godot.app
+        sudo ln -sf /Applications/Godot.app/Contents/MacOS/Godot /usr/local/bin/godot
 
+    # -------------------------
+    # Install Export Templates
+    # -------------------------
     - name: Download Godot Export Templates
       run: |
-        mkdir -p ~/Library/Application\ Support/Godot/templates/3.5.3.stable
-        cd ~/Library/Application\ Support/Godot/templates/3.5.3.stable
-        wget https://github.com/godotengine/godot/releases/download/3.5.3-stable/Godot_v3.5.3-stable_export_templates.tpz
-        tar -xzf Godot_v3.5.3-stable_export_templates.tpz -C ~/Library/Application\ Support/Godot/templates/3.5.3.stable
-        cd templates
-        mv * ..
-        cd ..
-        ls
+        mkdir -p ~/.local/share/godot/export_templates/4.5.stable
 
+        wget https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_export_templates.tpz
+
+        unzip Godot_v4.5-stable_export_templates.tpz -d ~/.local/share/godot/export_templates/4.5.stable
+
+    # -------------------------
+    # Build folder
+    # -------------------------
     - name: Create build directory
       run: mkdir -p build
 
+    # -------------------------
+    # Export iOS project
+    # -------------------------
     - name: Export iOS project
-      run: godot --export "iOS" build/your_project_name.xcodeproj
-      env:
-        DISPLAY: :99.0
-        
+      run: |
+        godot --headless --export-release "iOS" build/your_project_name.xcodeproj
+
+    # -------------------------
+    # Fix deployment target
+    # -------------------------
     - name: Set iOS Deployment Target
-      run: sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 12.0;/' build/your_project_name.xcodeproj/project.pbxproj
+      run: |
+        sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 12.0;/' build/your_project_name.xcodeproj/project.pbxproj
 
-
+    # -------------------------
+    # Build with Xcode
+    # -------------------------
     - name: Build iOS project
-      run: xcodebuild -project build/your_project_name.xcodeproj -scheme your_project_name -configuration Development -archivePath build/your_project_name.xcarchive archive \ CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+      run: |
+        xcodebuild \
+          -project build/your_project_name.xcodeproj \
+          -scheme your_project_name \
+          -configuration Development \
+          -archivePath build/your_project_name.xcarchive archive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
 
+    # -------------------------
+    # Create IPA
+    # -------------------------
     - name: Export IPA
-      run: | 
+      run: |
         cd build
         cd your_project_name.xcarchive
-        cd Products
-        cd Applications
+        cd Products/Applications
+
         mkdir Payload
         mv your_project_name.app Payload/
+
         zip -r App.ipa Payload/
         mv App.ipa ../../../
-    - name: Upload IPA to GitHub Artifacts
+
+    # -------------------------
+    # Upload artifact
+    # -------------------------
+    - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
-        name: Ipa
+        name: iOS-Build
         path: build/App.ipa
