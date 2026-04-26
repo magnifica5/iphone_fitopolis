@@ -34,11 +34,16 @@ jobs:
     # -------------------------
     - name: Download Godot Export Templates
       run: |
-        mkdir -p ~/.local/share/godot/export_templates/4.5.stable
+        # Calea corecta pentru macOS
+        mkdir -p "$HOME/Library/Application Support/Godot/export_templates/4.5.stable"
 
         wget https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_export_templates.tpz
 
-        unzip Godot_v4.5-stable_export_templates.tpz -d ~/.local/share/godot/export_templates/4.5.stable
+        # Extrage intr-un folder temporar
+        unzip Godot_v4.5-stable_export_templates.tpz -d /tmp/godot_templates
+
+        # Muta fisierele din subfolder-ul "templates/" in calea corecta
+        mv /tmp/godot_templates/templates/* "$HOME/Library/Application Support/Godot/export_templates/4.5.stable/"
 
     # -------------------------
     # Build folder
@@ -68,7 +73,7 @@ jobs:
         xcodebuild \
           -project build/your_project_name.xcodeproj \
           -scheme your_project_name \
-          -configuration Development \
+          -configuration Release \
           -archivePath build/your_project_name.xcarchive archive \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
@@ -79,15 +84,11 @@ jobs:
     # -------------------------
     - name: Export IPA
       run: |
+        APP_PATH="build/your_project_name.xcarchive/Products/Applications/your_project_name.app"
+        mkdir -p build/Payload
+        cp -r "$APP_PATH" build/Payload/
         cd build
-        cd your_project_name.xcarchive
-        cd Products/Applications
-
-        mkdir Payload
-        mv your_project_name.app Payload/
-
         zip -r App.ipa Payload/
-        mv App.ipa ../../../
 
     # -------------------------
     # Upload artifact
