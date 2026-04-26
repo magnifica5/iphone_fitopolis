@@ -45,16 +45,39 @@ jobs:
     - name: Create build directory
       run: mkdir -p build
 
-    - name: Export iOS project
+    - name: Export iOS project (project only, no xcodebuild)
       timeout-minutes: 20
       run: |
-        godot --headless --path . --export-release "iOS" build/fitopolis2final.xcodeproj 2>&1 || true
-        echo "Exit code: $?"
-        ls -la build/ || echo "Build folder empty"
+        godot --headless --path . --export-release "iOS" build/fitopolis2final.xcodeproj
+        echo "Godot exit code: $?"
+        ls -la build/
+
+    - name: Fix project.pbxproj (Xcode 16 compatibility)
+      run: |
+        PBXPROJ="build/fitopolis2final.xcodeproj/project.pbxproj"
+        echo "Lines around 166:"
+        sed -n '160,172p' "$PBXPROJ"
+        # Repair missing semicolons
+        perl -i -pe 's/(\s*\w[\w.]*\s*=\s*[^;{}\n][^\n]*[^;{}\n])(\s*\n)/$1;$2/g' "$PBXPROJ"
+        echo "Fix applied"
+
+    - name: Build with Xcode
+      run: |
+        xcodebuild \
+          -project build/fitopolis2final.xcodeproj \
+          -scheme fitopolis2final \
+          -sdk iphoneos \
+          -configuration Release \
+          -destination generic/platform=iOS \
+          -archivePath build/fitopolis2final.xcarchive \
+          archive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
 
     - name: Export IPA
       run: |
-        APP_PATH=$(find build -name "*.app" | head -1)
+        APP_PATH=$(find build/fitopolis2final.xcarchive -name "*.app" | head -1)
         echo "Found app at: $APP_PATH"
         mkdir -p build/Payload
         cp -r "$APP_PATH" build/Payload/
