@@ -26,19 +26,21 @@ jobs:
       run: |
         wget https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_macos.universal.zip
         unzip Godot_v4.5-stable_macos.universal.zip
-        sudo mv Godot.app /Applications/Godot.app
-        sudo ln -sf /Applications/Godot.app/Contents/MacOS/Godot /usr/local/bin/godot
+        sudo mv godot/Godot.app /Applications/Godot.app
+        sudo ln -s /Applications/Godot.app/Contents/MacOS/Godot /usr/local/bin/godot
 
     # -------------------------
-    # Install Export Templates
+    # Install Export Templates (Godot 4 format)
     # -------------------------
-    - name: Download Godot Export Templates
+    - name: Install templates
       run: |
         mkdir -p ~/.local/share/godot/export_templates/4.5.stable
 
         wget https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_export_templates.tpz
 
-        unzip Godot_v4.5-stable_export_templates.tpz -d ~/.local/share/godot/export_templates/4.5.stable
+        unzip Godot_v4.5-stable_export_templates.tpz
+
+        cp -r templates/* ~/.local/share/godot/export_templates/4.5.stable/
 
     # -------------------------
     # Build folder
@@ -47,7 +49,7 @@ jobs:
       run: mkdir -p build
 
     # -------------------------
-    # Export iOS project
+    # Export iOS project (Godot 4)
     # -------------------------
     - name: Export iOS project
       run: |
