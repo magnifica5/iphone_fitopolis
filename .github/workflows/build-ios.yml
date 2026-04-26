@@ -13,15 +13,9 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    # -------------------------
-    # Checkout repo
-    # -------------------------
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # -------------------------
-    # Install Godot 4.5
-    # -------------------------
     - name: Download Godot 4.5
       run: |
         wget https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_macos.universal.zip
@@ -29,70 +23,62 @@ jobs:
         sudo mv Godot.app /Applications/Godot.app
         sudo ln -sf /Applications/Godot.app/Contents/MacOS/Godot /usr/local/bin/godot
 
-    # -------------------------
-    # Install Export Templates
-    # -------------------------
+    - name: Cache Godot Export Templates
+      uses: actions/cache@v4
+      id: cache-templates
+      with:
+        path: ~/Library/Application Support/Godot/export_templates
+        key: godot-templates-4.5.stable
+
     - name: Download Godot Export Templates
+      if: steps.cache-templates.outputs.cache-hit != 'true'
       run: |
-        # Calea corecta pentru macOS
         mkdir -p "$HOME/Library/Application Support/Godot/export_templates/4.5.stable"
-
         wget https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_export_templates.tpz
-
-        # Extrage intr-un folder temporar
         unzip Godot_v4.5-stable_export_templates.tpz -d /tmp/godot_templates
-
-        # Muta fisierele din subfolder-ul "templates/" in calea corecta
         mv /tmp/godot_templates/templates/* "$HOME/Library/Application Support/Godot/export_templates/4.5.stable/"
 
-    # -------------------------
-    # Build folder
-    # -------------------------
+    - name: Verify templates
+      run: |
+        ls "$HOME/Library/Application Support/Godot/export_templates/4.5.stable/"
+
     - name: Create build directory
       run: mkdir -p build
 
     # -------------------------
-    # Export iOS project
+    # Patch export_path in cfg
     # -------------------------
+    - name: Fix export path in preset
+      run: |
+        sed -i '' 's|export_path="./fitopolis2final.ipa"|export_path="./build/fitopolis2final.xcodeproj"|' export_presets.cfg
+
     - name: Export iOS project
       run: |
-        godot --headless --export-release "iOS" build/your_project_name.xcodeproj
+        godot --headless --path . --export-release "iOS" build/fitopolis2final.xcodeproj
 
-    # -------------------------
-    # Fix deployment target
-    # -------------------------
     - name: Set iOS Deployment Target
       run: |
-        sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 12.0;/' build/your_project_name.xcodeproj/project.pbxproj
+        sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 13.0/' build/fitopolis2final.xcodeproj/project.pbxproj
 
-    # -------------------------
-    # Build with Xcode
-    # -------------------------
     - name: Build iOS project
       run: |
         xcodebuild \
-          -project build/your_project_name.xcodeproj \
-          -scheme your_project_name \
+          -project build/fitopolis2final.xcodeproj \
+          -scheme fitopolis2final \
           -configuration Release \
-          -archivePath build/your_project_name.xcarchive archive \
+          -archivePath build/fitopolis2final.xcarchive archive \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO
 
-    # -------------------------
-    # Create IPA
-    # -------------------------
     - name: Export IPA
       run: |
-        APP_PATH="build/your_project_name.xcarchive/Products/Applications/your_project_name.app"
+        APP_PATH="build/fitopolis2final.xcarchive/Products/Applications/fitopolis2final.app"
         mkdir -p build/Payload
         cp -r "$APP_PATH" build/Payload/
         cd build
         zip -r App.ipa Payload/
 
-    # -------------------------
-    # Upload artifact
-    # -------------------------
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
