@@ -52,14 +52,13 @@ jobs:
         echo "Godot exit code: $?"
         ls -la build/
 
-    - name: Fix project.pbxproj (Xcode 16 compatibility)
+    - name: Fix project.pbxproj
       run: |
         PBXPROJ="build/fitopolis2final.xcodeproj/project.pbxproj"
-        echo "Lines around 166:"
-        sed -n '160,172p' "$PBXPROJ"
-        # Repair missing semicolons
-        perl -i -pe 's/(\s*\w[\w.]*\s*=\s*[^;{}\n][^\n]*[^;{}\n])(\s*\n)/$1;$2/g' "$PBXPROJ"
+        # Sterge apostroful din fit'o polis
+        sed -i '' "s/fit'o polis/fitopolis/g" "$PBXPROJ"
         echo "Fix applied"
+        grep -n "DevelopmentTeam\|DEVELOPMENT_TEAM" "$PBXPROJ"
     
     - name: Debug project.pbxproj
       run: |
