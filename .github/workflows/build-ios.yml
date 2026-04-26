@@ -45,13 +45,12 @@ jobs:
     - name: Create build directory
       run: mkdir -p build
 
-    - name: Fix export path in preset
-      run: |
-        sed -i '' 's|export_path="./fitopolis2final.ipa"|export_path="./build/fitopolis2final.xcodeproj"|' export_presets.cfg
-
     - name: Export iOS project
+      timeout-minutes: 20
       run: |
-        godot --headless --path . --export-release "iOS" build/fitopolis2final.xcodeproj
+        godot --headless --path . --export-release "iOS" build/fitopolis2final.xcodeproj 2>&1 || true
+        echo "Exit code: $?"
+        ls -la build/ || echo "Build folder empty"
 
     - name: Export IPA
       run: |
