@@ -45,9 +45,6 @@ jobs:
     - name: Create build directory
       run: mkdir -p build
 
-    # -------------------------
-    # Patch export_path in cfg
-    # -------------------------
     - name: Fix export path in preset
       run: |
         sed -i '' 's|export_path="./fitopolis2final.ipa"|export_path="./build/fitopolis2final.xcodeproj"|' export_presets.cfg
@@ -56,24 +53,10 @@ jobs:
       run: |
         godot --headless --path . --export-release "iOS" build/fitopolis2final.xcodeproj
 
-    - name: Set iOS Deployment Target
-      run: |
-        sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 13.0/' build/fitopolis2final.xcodeproj/project.pbxproj
-
-    - name: Build iOS project
-      run: |
-        xcodebuild \
-          -project build/fitopolis2final.xcodeproj \
-          -scheme fitopolis2final \
-          -configuration Release \
-          -archivePath build/fitopolis2final.xcarchive archive \
-          CODE_SIGN_IDENTITY="" \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
-
     - name: Export IPA
       run: |
-        APP_PATH="build/fitopolis2final.xcarchive/Products/Applications/fitopolis2final.app"
+        APP_PATH=$(find build -name "*.app" | head -1)
+        echo "Found app at: $APP_PATH"
         mkdir -p build/Payload
         cp -r "$APP_PATH" build/Payload/
         cd build
