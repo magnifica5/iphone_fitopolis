@@ -1,0 +1,17 @@
+# build files
+build/
+android/build/
+ios/build/
+
+# binaries
+*.apk
+*.aar
+*.exe
+*.ipa
+
+# Godot
+.export/
+.import/
+
+# misc
+*.log
